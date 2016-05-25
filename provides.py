@@ -32,7 +32,6 @@ class CephClientProvider(RelationBase):
         # print("Conversation is ", conversation)
         # key is a keyword argument to the set_remote function so we have to
         # set it separately.
-        # conversation.set_remote(value='key', data=key)
         relation_set(
             relation_id=conversation.namespace,
             relation_settings={'key': key})
