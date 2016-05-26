@@ -88,8 +88,7 @@ class CephClientProvider(RelationBase):
         for conversation in self.conversations():
             service = conversation.scope
             token = self.requested_token(service)
-            if token is None:
-                yield service, token
+            yield service, token
 
     def requested_token(self, service):
         """
