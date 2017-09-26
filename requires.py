@@ -113,7 +113,12 @@ class CephClientRequires(RelationBase):
         """List of all monitor host public addresses"""
         hosts = []
         addrs = self.get_remote_all('ceph-public-address')
-        for addr in addrs:
-            hosts.append('{}:6789'.format(format_ipv6_addr(addr) or addr))
+        for ceph_addrs in addrs:
+            # NOTE(jamespage): This looks odd but deals with
+            #                  use with ceph-proxy which
+            #                  presents all monitors in
+            #                  a single space delimited field.
+            for addr in ceph_addrs.split(' '):
+                hosts.append(format_ipv6_addr(addr) or addr)
         hosts.sort()
         return hosts
