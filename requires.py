@@ -67,7 +67,7 @@ class CephClientRequires(RelationBase):
         self.remove_state('{relation_name}.connected')
         self.remove_state('{relation_name}.pools.available')
 
-    def create_pool(self, name, replicas=3):
+    def create_pool(self, name, replicas=3, weight=None):
         """
         Request pool setup
 
@@ -81,7 +81,7 @@ class CephClientRequires(RelationBase):
             rq = CephBrokerRq()
             rq.add_op_create_pool(name="{}".format(name),
                                   replica_count=replicas,
-                                  weight=None)
+                                  weight=weight)
             self.set_local(key='broker_req', value=rq.request)
             send_request_if_needed(rq, relation=self.relation_name)
         else:
