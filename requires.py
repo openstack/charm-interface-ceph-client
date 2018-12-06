@@ -67,13 +67,23 @@ class CephClientRequires(RelationBase):
         self.remove_state('{relation_name}.connected')
         self.remove_state('{relation_name}.pools.available')
 
-    def create_pool(self, name, replicas=3, weight=None):
+    def create_pool(self, name, replicas=3, weight=None, pg_num=None,
+                    group=None, namespace=None):
         """
         Request pool setup
 
-        @param name: name of pool to create
-        @param replicas: number of replicas for supporting pools
+        @param name: Name of pool to create
+        @param replicas: Number of replicas for supporting pools
+        @param weight: The percentage of data the pool makes up
+        @param pg_num: If not provided, this value will be calculated by the
+                       broker based on how many OSDs are in the cluster at the
+                       time of creation. Note that, if provided, this value
+                       will be capped at the current available maximum.
+        @param group: Group to add pool to.
+        @param namespace: A group can optionally have a namespace defined that
+                          will be used to further restrict pool access.
         """
+
         # json.dumps of the CephBrokerRq()
         json_rq = self.get_local(key='broker_req')
 
@@ -81,7 +91,10 @@ class CephClientRequires(RelationBase):
             rq = CephBrokerRq()
             rq.add_op_create_pool(name="{}".format(name),
                                   replica_count=replicas,
-                                  weight=weight)
+                                  pg_num=pg_num,
+                                  weight=weight,
+                                  group=group,
+                                  namespace=namespace)
             self.set_local(key='broker_req', value=rq.request)
             send_request_if_needed(rq, relation=self.relation_name)
         else:
