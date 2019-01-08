@@ -11,8 +11,9 @@
 # limitations under the License.
 
 
-import unittest
+import json
 import mock
+import unittest
 
 
 with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
@@ -171,6 +172,41 @@ class TestCephClientRequires(unittest.TestCase):
             mock.call('{relation_name}.connected'),
             mock.call('{relation_name}.pools.available')])
 
+    def test_get_current_request_new(self):
+        self.patch_kr('get_local', None)
+        req = self.cr.get_current_request()
+        self.assertEqual(req.ops, [])
+
+    def test_get_current_request_existing(self):
+        req = (
+            '{"api-version": 1, '
+            '"ops": [{"op": "create-pool", "name": "bob", "replicas": 3, '
+            '"pg_num": null, "weight": null, "group": null, '
+            '"group-namespace": null}], '
+            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
+        self.patch_kr('get_local', req)
+        req = self.cr.get_current_request()
+        self.assertEqual(
+            req.ops,
+            [{
+                'op': 'create-pool',
+                'name': 'bob',
+                'replicas': 3,
+                'group': None,
+                'group-namespace': None,
+                'pg_num': None,
+                'weight': None}])
+
+    def test_get_current_request_not_json(self):
+        self.patch_kr('get_local', '{I am not json')
+        with self.assertRaises(json.decoder.JSONDecodeError):
+            self.cr.get_current_request()
+
+    def test_get_current_request_missing_ops(self):
+        self.patch_kr('get_local', '{}')
+        with self.assertRaises(KeyError):
+            self.cr.get_current_request()
+
     @mock.patch.object(charmhelpers.contrib.storage.linux.ceph.uuid, 'uuid1')
     def test_create_pool_new_request(self, _uuid1):
         _uuid1.return_value = '9e34123e-fa0c-11e8-ad9c-fa163ed1cc55'
@@ -206,18 +242,27 @@ class TestCephClientRequires(unittest.TestCase):
             '"group-namespace": null}], '
             '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
         self.patch_kr('get_local', req)
-        self.cr.create_pool('bob')
+        self.cr.create_pool('bill')
         ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
         self.assertEqual(
             ceph_broker_rq.ops,
-            [{
-                'op': 'create-pool',
-                'name': 'bob',
-                'replicas': 3,
-                'group': None,
-                'group-namespace': None,
-                'pg_num': None,
-                'weight': None}])
+            [
+                {
+                    'op': 'create-pool',
+                    'name': 'bob',
+                    'replicas': 3,
+                    'group': None,
+                    'group-namespace': None,
+                    'pg_num': None,
+                    'weight': None},
+                {
+                    'op': 'create-pool',
+                    'name': 'bill',
+                    'replicas': 3,
+                    'group': None,
+                    'group-namespace': None,
+                    'pg_num': None,
+                    'weight': None}])
 
     @mock.patch.object(requires.hookenv, 'related_units')
     @mock.patch.object(requires.hookenv, 'relation_get')
