@@ -113,6 +113,35 @@ class CephClientRequires(RelationBase):
         self.set_local(key='broker_req', value=current_request.request)
         send_request_if_needed(current_request, relation=self.relation_name)
 
+    def request_access_to_group(self, name, namespace=None, permission=None,
+                                key_name=None, object_prefix_permissions=None):
+        """
+        Adds the requested permissions to service's Ceph key
+
+        Adds the requested permissions to the current service's Ceph key,
+        allowing the key to access only the specified pools or
+        object prefixes. object_prefix_permissions should be a dictionary
+        keyed on the permission with the corresponding value being a list
+        of prefixes to apply that permission to.
+            {
+                'rwx': ['prefix1', 'prefix2'],
+                'class-read': ['prefix3']}
+        @param name: Target group name for permissions request.
+        @param namespace: namespace to further restrict pool access.
+        @param permission: Permission to be requested against pool
+        @param key_name: userid to grant permission to
+        @param object_prefix_permissions: Add object_prefix permissions.
+        """
+        current_request = self.get_current_request()
+        current_request.add_op_request_access_to_group(
+            name,
+            namespace=namespace,
+            permission=permission,
+            key_name=key_name,
+            object_prefix_permissions=object_prefix_permissions)
+        self.set_local(key='broker_req', value=current_request.request)
+        send_request_if_needed(current_request, relation=self.relation_name)
+
     def get_remote_all(self, key, default=None):
         """Return a list of all values presented by remote units for key"""
         # TODO: might be a nicer way todo this - written a while back!

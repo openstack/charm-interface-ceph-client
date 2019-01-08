@@ -264,6 +264,59 @@ class TestCephClientRequires(unittest.TestCase):
                     'pg_num': None,
                     'weight': None}])
 
+    def test_request_access_to_group_new_request(self):
+        self.patch_kr('get_local', '{"ops": []}')
+        self.patch_kr('set_local')
+        self.cr.request_access_to_group(
+            'volumes',
+            key_name='cinder',
+            object_prefix_permissions={'class-read': ['rbd_children']},
+            permission='rwx')
+        ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
+        self.assertEqual(
+            ceph_broker_rq.ops,
+            [{
+                'group': 'volumes',
+                'group-permission': 'rwx',
+                'name': 'cinder',
+                'namespace': None,
+                'object-prefix-permissions': {'class-read': ['rbd_children']},
+                'op': 'add-permissions-to-key'}])
+
+    def test_request_access_to_group_existing_request(self):
+        req = (
+            '{"api-version": 1, '
+            '"ops": [{"op": "create-pool", "name": "volumes", "replicas": 3, '
+            '"pg_num": null, "weight": null, "group": null, '
+            '"group-namespace": null}], '
+            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
+        self.patch_kr('get_local', req)
+        self.cr.request_access_to_group(
+            'volumes',
+            key_name='cinder',
+            object_prefix_permissions={'class-read': ['rbd_children']},
+            permission='rwx')
+        ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
+        self.assertEqual(
+            ceph_broker_rq.ops,
+            [
+                {
+                    'op': 'create-pool',
+                    'name': 'volumes',
+                    'replicas': 3,
+                    'group': None,
+                    'group-namespace': None,
+                    'pg_num': None,
+                    'weight': None},
+                {
+                    'group': 'volumes',
+                    'group-permission': 'rwx',
+                    'name': 'cinder',
+                    'namespace': None,
+                    'object-prefix-permissions': {
+                        'class-read': ['rbd_children']},
+                    'op': 'add-permissions-to-key'}])
+
     @mock.patch.object(requires.hookenv, 'related_units')
     @mock.patch.object(requires.hookenv, 'relation_get')
     def test_get_remote_all(self, relation_get, related_units):
