@@ -67,24 +67,6 @@ class CephClientRequires(RelationBase):
         self.remove_state('{relation_name}.connected')
         self.remove_state('{relation_name}.pools.available')
 
-    def get_current_request(self):
-        """
-        Retrieve the current Ceph broker request.
-
-        If no request has been created yet then create a new one.
-        """
-        json_rq = self.get_local(key='broker_req')
-        current_request = CephBrokerRq()
-        if json_rq:
-            try:
-                j = json.loads(json_rq)
-                current_request.set_ops(j['ops'])
-            except (KeyError, json.decoder.JSONDecodeError) as err:
-                log("Unable to decode broker_req: {}.  Error: {}".format(
-                    json_rq, err))
-                raise
-        return current_request
-
     def create_pool(self, name, replicas=3, weight=None, pg_num=None,
                     group=None, namespace=None):
         """
@@ -102,16 +84,29 @@ class CephClientRequires(RelationBase):
                           will be used to further restrict pool access.
         """
 
-        current_request = self.get_current_request()
-        current_request.add_op_create_pool(
-            name="{}".format(name),
-            replica_count=replicas,
-            pg_num=pg_num,
-            weight=weight,
-            group=group,
-            namespace=namespace)
-        self.set_local(key='broker_req', value=current_request.request)
-        send_request_if_needed(current_request, relation=self.relation_name)
+        # json.dumps of the CephBrokerRq()
+        json_rq = self.get_local(key='broker_req')
+
+        if not json_rq:
+            rq = CephBrokerRq()
+            rq.add_op_create_pool(name="{}".format(name),
+                                  replica_count=replicas,
+                                  pg_num=pg_num,
+                                  weight=weight,
+                                  group=group,
+                                  namespace=namespace)
+            self.set_local(key='broker_req', value=rq.request)
+            send_request_if_needed(rq, relation=self.relation_name)
+        else:
+            rq = CephBrokerRq()
+            try:
+                j = json.loads(json_rq)
+                log("Json request: {}".format(json_rq))
+                rq.ops = j['ops']
+                send_request_if_needed(rq, relation=self.relation_name)
+            except ValueError as err:
+                log("Unable to decode broker_req: {}.  Error: {}".format(
+                    json_rq, err))
 
     def get_remote_all(self, key, default=None):
         """Return a list of all values presented by remote units for key"""

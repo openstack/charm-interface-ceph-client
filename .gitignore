@@ -2,6 +2,3 @@
 *.swp
 .testrepository
 .tox
-.stestr
-.unit-state.db
-__pycache__
