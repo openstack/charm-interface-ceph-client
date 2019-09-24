@@ -67,8 +67,8 @@ class CephClientRequires(RelationBase):
         self.remove_state('{relation_name}.connected')
         self.remove_state('{relation_name}.pools.available')
 
-    def create_pool(self, name, replicas=3, weight=None, pg_num=None,
-                    group=None, namespace=None):
+    def create_replicated_pool(self, name, replicas=3, weight=None,
+                               pg_num=None, group=None, namespace=None):
         """
         Request pool setup
 
@@ -83,30 +83,48 @@ class CephClientRequires(RelationBase):
         @param namespace: A group can optionally have a namespace defined that
                           will be used to further restrict pool access.
         """
-
         # json.dumps of the CephBrokerRq()
-        json_rq = self.get_local(key='broker_req')
+        rq = CephBrokerRq()
 
-        if not json_rq:
-            rq = CephBrokerRq()
-            rq.add_op_create_pool(name="{}".format(name),
-                                  replica_count=replicas,
-                                  pg_num=pg_num,
-                                  weight=weight,
-                                  group=group,
-                                  namespace=namespace)
-            self.set_local(key='broker_req', value=rq.request)
-            send_request_if_needed(rq, relation=self.relation_name)
-        else:
-            rq = CephBrokerRq()
+        json_rq = self.get_local(key='broker_req')
+        if json_rq:
             try:
                 j = json.loads(json_rq)
                 log("Json request: {}".format(json_rq))
-                rq.ops = j['ops']
-                send_request_if_needed(rq, relation=self.relation_name)
+                rq.set_ops(j['ops'])
             except ValueError as err:
-                log("Unable to decode broker_req: {}.  Error: {}".format(
+                log("Unable to decode broker_req: {}. Error {}".format(
                     json_rq, err))
+
+        rq.add_op_create_replicated_pool(name=name,
+                                         replica_count=replicas,
+                                         pg_num=pg_num,
+                                         weight=weight,
+                                         group=group,
+                                         namespace=namespace)
+        self.set_local(key='broker_req', value=rq.requests)
+        send_request_if_needed(rq, relation=self.relation_name)
+        self.remove_state('{relation_name}.pools.available')
+
+    def create_pool(self, name, replicas=3, weight=None, pg_num=None,
+                    group=None, namespace=None):
+        """
+        Request pool setup -- deprecated. Please use create_replicated_pool
+        or create_erasure_pool(which doesn't exist yet)
+
+        @param name: Name of pool to create
+        @param replicas: Number of replicas for supporting pools
+        @param weight: The percentage of data the pool makes up
+        @param pg_num: If not provided, this value will be calculated by the
+                       broker based on how many OSDs are in the cluster at the
+                       time of creation. Note that, if provided, this value
+                       will be capped at the current available maximum.
+        @param group: Group to add pool to.
+        @param namespace: A group can optionally have a namespace defined that
+                          will be used to further restrict pool access.
+        """
+        self.create_replicated_pool(name, replicas, weight, pg_num, group,
+                                    namespace)
 
     def request_access_to_group(self, name, namespace=None, permission=None,
                                 key_name=None, object_prefix_permissions=None):
