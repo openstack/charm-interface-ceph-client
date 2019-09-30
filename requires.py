@@ -102,7 +102,7 @@ class CephClientRequires(RelationBase):
                                          weight=weight,
                                          group=group,
                                          namespace=namespace)
-        self.set_local(key='broker_req', value=rq.requests)
+        self.set_local(key='broker_req', value=rq.request)
         send_request_if_needed(rq, relation=self.relation_name)
         self.remove_state('{relation_name}.pools.available')
 
