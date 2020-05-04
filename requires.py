@@ -83,19 +83,7 @@ class CephClientRequires(RelationBase):
         @param namespace: A group can optionally have a namespace defined that
                           will be used to further restrict pool access.
         """
-        # json.dumps of the CephBrokerRq()
-        rq = CephBrokerRq()
-
-        json_rq = self.get_local(key='broker_req')
-        if json_rq:
-            try:
-                j = json.loads(json_rq)
-                log("Json request: {}".format(json_rq))
-                rq.set_ops(j['ops'])
-            except ValueError as err:
-                log("Unable to decode broker_req: {}. Error {}".format(
-                    json_rq, err))
-
+        rq = self.get_current_request()
         rq.add_op_create_replicated_pool(name=name,
                                          replica_count=replicas,
                                          pg_num=pg_num,
@@ -154,6 +142,22 @@ class CephClientRequires(RelationBase):
             object_prefix_permissions=object_prefix_permissions)
         self.set_local(key='broker_req', value=current_request.request)
         send_request_if_needed(current_request, relation=self.relation_name)
+
+    def get_current_request(self):
+        """Return the current broker request for the interface."""
+        # json.dumps of the CephBrokerRq()
+        rq = CephBrokerRq()
+
+        json_rq = self.get_local(key='broker_req')
+        if json_rq:
+            try:
+                j = json.loads(json_rq)
+                log("Json request: {}".format(json_rq))
+                rq.set_ops(j['ops'])
+            except ValueError as err:
+                log("Unable to decode broker_req: {}. Error {}".format(
+                    json_rq, err))
+        return rq
 
     def get_remote_all(self, key, default=None):
         """Return a list of all values presented by remote units for key"""
