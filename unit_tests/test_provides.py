@@ -12,7 +12,7 @@
 
 
 import unittest
-import mock
+from unitest import mock
 
 
 with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
