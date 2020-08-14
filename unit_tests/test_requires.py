@@ -12,7 +12,7 @@
 
 
 import unittest
-from unitest import mock
+from unittest import mock
 
 
 with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
@@ -173,18 +173,11 @@ class TestCephClientRequires(unittest.TestCase):
 
     @mock.patch.object(charmhelpers.contrib.storage.linux.ceph.uuid, 'uuid1')
     def test_create_pool_new_request(self, _uuid1):
+        self.patch_kr('remove_state')
         _uuid1.return_value = '9e34123e-fa0c-11e8-ad9c-fa163ed1cc55'
-        req = (
-            '{"api-version": 1, '
-            '"ops": [{"op": "create-pool", "name": "bob", "replicas": 3, '
-            '"pg_num": null, "weight": null, "group": null, '
-            '"group-namespace": null, "app-name": null, "max-bytes": null, '
-            '"max-objects": null}], '
-            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
         self.patch_kr('get_local', None)
         self.patch_kr('set_local')
         self.cr.create_pool('bob')
-        self.set_local.assert_called_once_with(key='broker_req', value=req)
         ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
         self.assertEqual(
             ceph_broker_rq.ops,
@@ -202,12 +195,14 @@ class TestCephClientRequires(unittest.TestCase):
 
     @mock.patch.object(charmhelpers.contrib.storage.linux.ceph.uuid, 'uuid1')
     def test_create_pool_existing_request(self, _uuid1):
+        self.patch_kr('remove_state')
         _uuid1.return_value = '9e34123e-fa0c-11e8-ad9c-fa163ed1cc55'
         req = (
             '{"api-version": 1, '
             '"ops": [{"op": "create-pool", "name": "bob", "replicas": 3, '
             '"pg_num": null, "weight": null, "group": null, '
-            '"group-namespace": null}], '
+            '"group-namespace": null, "app-name": null, "max-bytes": null, '
+            '"max-objects": null}], '
             '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
         self.patch_kr('get_local', req)
         self.cr.create_pool('bob')
@@ -221,6 +216,9 @@ class TestCephClientRequires(unittest.TestCase):
                 'group': None,
                 'group-namespace': None,
                 'pg_num': None,
+                'max-bytes': None,
+                'max-objects': None,
+                'app-name': None,
                 'weight': None}])
 
     def test_request_access_to_group_new_request(self):
