@@ -114,6 +114,91 @@ class CephClientRequires(RelationBase):
         self.create_replicated_pool(name, replicas, weight, pg_num, group,
                                     namespace)
 
+    def create_erasure_pool(self, name, erasure_profile=None,
+                            weight=None, group=None, app_name=None,
+                            max_bytes=None, max_objects=None,
+                            allow_ec_overwrites=False):
+        """
+        Request erasure coded pool setup
+
+        @param name: Name of pool to create
+        @param erasure_profile: Name of erasure profile for pool
+        @param weight: The percentage of data the pool makes up
+        @param group: Group to add pool to.
+        @param app_name: Name of application using pool
+        @param max_bytes: Maximum bytes of quota to apply
+        @param max_objects: Maximum object quota to apply
+        @param allow_ec_overwrites: Allow EC pools to be overwritten
+        """
+        rq = self.get_current_request()
+        rq.add_op_create_erasure_pool(name=name,
+                                      erasure_profile=erasure_profile,
+                                      weight=weight,
+                                      group=group,
+                                      app_name=app_name,
+                                      max_bytes=max_bytes,
+                                      max_objects=max_objects,
+                                      allow_ec_overwrites=allow_ec_overwrites)
+        self.set_local(key='broker_req', value=rq.request)
+        send_request_if_needed(rq, relation=self.relation_name)
+        self.remove_state('{relation_name}.pools.available')
+
+    def create_erasure_profile(self, name,
+                               erasure_type='jerasure',
+                               erasure_technique=None,
+                               k=None, m=None,
+                               failure_domain=None,
+                               lrc_locality=None,
+                               shec_durability_estimator=None,
+                               clay_helper_chunks=None,
+                               device_class=None,
+                               clay_scalar_mds=None,
+                               lrc_crush_locality=None):
+        """
+        Create erasure coding profile
+
+        @param name: Name of erasure coding profile
+        @param erasure_type: Erasure coding plugin to use
+        @param erasure_technique: Erasure coding technique to use
+        @param k: Number of data chunks
+        @param m: Number of coding chunks
+        @param failure_domain: Failure domain to use for PG placement
+        @param lrc_locality:
+            Group the coding and data chunks into sets
+            of size locality (lrc plugin)
+        @param shec_durability_estimator:
+            The number of parity chuncks each of which includes
+            a data chunk in its calculation range (shec plugin)
+        @param clay_helper_chunks:
+            The number of helper chunks to use for recovery operations
+            (clay plugin)
+        @param device_class:
+            Device class to use for profile (ssd, hdd, nvme)
+        @param clay_scalar_mds:
+            Plugin to use for CLAY layered construction
+            (jerasure|isa|shec)
+        @param lrc_crush_locality:
+            Type of crush bucket in which set of chunks
+            defined by lrc_locality will be stored.
+        """
+        rq = self.get_current_request()
+        rq.add_op_create_erasure_profile(
+            name=name,
+            erasure_type=erasure_type,
+            erasure_technique=erasure_technique,
+            k=k, m=m,
+            failure_domain=failure_domain,
+            lrc_locality=lrc_locality,
+            shec_durability_estimator=shec_durability_estimator,
+            clay_helper_chunks=clay_helper_chunks,
+            device_class=device_class,
+            clay_scalar_mds=clay_scalar_mds,
+            lrc_crush_locality=lrc_crush_locality
+        )
+        self.set_local(key='broker_req', value=rq.request)
+        send_request_if_needed(rq, relation=self.relation_name)
+        self.remove_state('{relation_name}.pools.available')
+
     def request_access_to_group(self, name, namespace=None, permission=None,
                                 key_name=None, object_prefix_permissions=None):
         """
