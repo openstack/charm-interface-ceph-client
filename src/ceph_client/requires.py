@@ -14,7 +14,33 @@
 
 from .lib import base_requires
 
+from charms.reactive import (
+    when,
+)
+
 
 class CephClientRequires(base_requires.CephRequires):
 
-    pass
+    @when('endpoint.{endpoint_name}.joined')
+    def joined(self):
+        super().joined()
+
+    @when('endpoint.{endpoint_name}.changed')
+    def changed(self):
+        super().changed()
+
+    @when('endpoint.{endpoint_name}.departed')
+    def departed(self):
+        super().changed()
+
+    @when('endpoint.{endpoint_name}.broken')
+    def broken(self):
+        super().broken()
+
+    def initial_ceph_response(self):
+        data = {
+            'key': self.key(),
+            'auth': self.auth(),
+            'mon_hosts': self.mon_hosts()
+        }
+        return data

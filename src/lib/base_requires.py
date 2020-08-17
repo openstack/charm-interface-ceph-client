@@ -14,61 +14,63 @@
 
 import json
 
-from charms.reactive import hook
-from charms.reactive import RelationBase
-from charms.reactive import scopes
-from charmhelpers.core import hookenv
+import charms.reactive as reactive
+
 from charmhelpers.core.hookenv import log
 from charmhelpers.contrib.network.ip import format_ipv6_addr
 
 from charmhelpers.contrib.storage.linux.ceph import (
     CephBrokerRq,
     is_request_complete,
-    send_request_if_needed,
+    is_request_sent,
 )
 
 
-class CephRequires(RelationBase):
-    scope = scopes.GLOBAL
+class CephRequires(reactive.Endpoint):
 
-    auto_accessors = ['auth', 'key']
-
-    @hook('{requires:ceph-client}-relation-{joined}')
     def joined(self):
-        self.set_state('{relation_name}.connected')
+        reactive.set_flag(self.expand_name('{endpoint_name}.connected'))
 
-    @hook('{requires:ceph-client}-relation-{changed,departed}')
+    def key(self):
+        return self.all_joined_units.received.get('key')
+
+    def auth(self):
+        return self.all_joined_units.received.get('auth')
+
+    @property
+    def relation_name(self):
+        return self.expand_name('{endpoint_name}')
+
+    def initial_ceph_response(self):
+        raise NotImplementedError
+
     def changed(self):
-        data = {
-            'key': self.key(),
-            'auth': self.auth(),
-            'mon_hosts': self.mon_hosts()
-        }
+        data = self.initial_ceph_response()
         if all(data.values()):
-            self.set_state('{relation_name}.available')
+            reactive.set_flag(self.expand_name('{endpoint_name}.available'))
 
-        json_rq = self.get_local(key='broker_req')
-        if json_rq:
-            rq = CephBrokerRq()
-            j = json.loads(json_rq)
-            rq.ops = j['ops']
+        rq = self.get_current_request()
+        if rq:
             log("changed broker_req: {}".format(rq.ops))
 
-            if rq and is_request_complete(rq,
-                                          relation=self.relation_name):
+            if rq and is_request_complete(rq, relation=self.relation_name):
                 log("Setting ceph-client.pools.available")
-                self.set_state('{relation_name}.pools.available')
+                reactive.set_flag(
+                    self.expand_name('{endpoint_name}.pools.available'))
             else:
                 log("incomplete request. broker_req not found")
 
-    @hook('{requires:ceph-client}-relation-{broken}')
     def broken(self):
-        self.remove_state('{relation_name}.available')
-        self.remove_state('{relation_name}.connected')
-        self.remove_state('{relation_name}.pools.available')
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.available'))
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.connected'))
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.pools.available'))
 
     def create_replicated_pool(self, name, replicas=3, weight=None,
-                               pg_num=None, group=None, namespace=None):
+                               pg_num=None, group=None, namespace=None,
+                               app_name=None):
         """
         Request pool setup
 
@@ -82,17 +84,22 @@ class CephRequires(RelationBase):
         @param group: Group to add pool to.
         @param namespace: A group can optionally have a namespace defined that
                           will be used to further restrict pool access.
+        @param app_name: (Optional) Tag pool with application name.  Note that
+                         there is certain protocols emerging upstream with
+                         regard to meaningful application names to use.
+                         Examples are ``rbd`` and ``rgw``.
         """
-        rq = self.get_current_request()
+        rq = self.get_current_request() or CephBrokerRq()
         rq.add_op_create_replicated_pool(name=name,
                                          replica_count=replicas,
                                          pg_num=pg_num,
                                          weight=weight,
                                          group=group,
-                                         namespace=namespace)
-        self.set_local(key='broker_req', value=rq.request)
-        send_request_if_needed(rq, relation=self.relation_name)
-        self.remove_state('{relation_name}.pools.available')
+                                         namespace=namespace,
+                                         app_name=app_name)
+        self.send_request_if_needed(rq)
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.pools.available'))
 
     def create_pool(self, name, replicas=3, weight=None, pg_num=None,
                     group=None, namespace=None):
@@ -130,7 +137,7 @@ class CephRequires(RelationBase):
         @param max_objects: Maximum object quota to apply
         @param allow_ec_overwrites: Allow EC pools to be overwritten
         """
-        rq = self.get_current_request()
+        rq = self.get_current_request() or CephBrokerRq()
         rq.add_op_create_erasure_pool(name=name,
                                       erasure_profile=erasure_profile,
                                       weight=weight,
@@ -139,9 +146,9 @@ class CephRequires(RelationBase):
                                       max_bytes=max_bytes,
                                       max_objects=max_objects,
                                       allow_ec_overwrites=allow_ec_overwrites)
-        self.set_local(key='broker_req', value=rq.request)
-        send_request_if_needed(rq, relation=self.relation_name)
-        self.remove_state('{relation_name}.pools.available')
+        self.send_request_if_needed(rq, relation=self.relation_name)
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.pools.available'))
 
     def create_erasure_profile(self, name,
                                erasure_type='jerasure',
@@ -181,7 +188,7 @@ class CephRequires(RelationBase):
             Type of crush bucket in which set of chunks
             defined by lrc_locality will be stored.
         """
-        rq = self.get_current_request()
+        rq = self.get_current_request() or CephBrokerRq()
         rq.add_op_create_erasure_profile(
             name=name,
             erasure_type=erasure_type,
@@ -195,12 +202,13 @@ class CephRequires(RelationBase):
             clay_scalar_mds=clay_scalar_mds,
             lrc_crush_locality=lrc_crush_locality
         )
-        self.set_local(key='broker_req', value=rq.request)
-        send_request_if_needed(rq, relation=self.relation_name)
-        self.remove_state('{relation_name}.pools.available')
+        self.send_request_if_needed(rq, relation=self.relation_name)
+        reactive.clear_flag(
+            self.expand_name('{endpoint_name}.pools.available'))
 
     def request_access_to_group(self, name, namespace=None, permission=None,
-                                key_name=None, object_prefix_permissions=None):
+                                key_name=None,
+                                object_prefix_permissions=None):
         """
         Adds the requested permissions to service's Ceph key
 
@@ -218,44 +226,49 @@ class CephRequires(RelationBase):
         @param key_name: userid to grant permission to
         @param object_prefix_permissions: Add object_prefix permissions.
         """
-        current_request = self.get_current_request()
+        current_request = self.get_current_request() or CephBrokerRq()
         current_request.add_op_request_access_to_group(
             name,
             namespace=namespace,
             permission=permission,
             key_name=key_name,
             object_prefix_permissions=object_prefix_permissions)
-        self.set_local(key='broker_req', value=current_request.request)
-        send_request_if_needed(current_request, relation=self.relation_name)
+        self.send_request_if_needed(current_request)
+
+    def send_request_if_needed(self, request):
+        """Send broker request if an equivalent request has not been sent
+
+        @param request: A CephBrokerRq object
+        """
+        if is_request_sent(request, relation=self.relation_name):
+            log('Request already sent but not complete, '
+                'not sending new request')
+        else:
+            for relation in self.relations:
+                relation.to_publish['broker_req'] = json.loads(
+                    request.request)
 
     def get_current_request(self):
-        """Return the current broker request for the interface."""
-        # json.dumps of the CephBrokerRq()
-        rq = CephBrokerRq()
-
-        json_rq = self.get_local(key='broker_req')
-        if json_rq:
-            try:
-                j = json.loads(json_rq)
-                log("Json request: {}".format(json_rq))
-                rq.set_ops(j['ops'])
-            except ValueError as err:
-                log("Unable to decode broker_req: {}. Error {}".format(
-                    json_rq, err))
-        return rq
+        broker_reqs = []
+        for relation in self.relations:
+            broker_req = relation.to_publish.get('broker_req', {})
+            if broker_req:
+                rq = CephBrokerRq()
+                rq.set_ops(broker_req['ops'])
+                broker_reqs.append(rq)
+        # Check that if there are multiple requests then they are the same.
+        assert all(x == broker_reqs[0] for x in broker_reqs)
+        if broker_reqs:
+            return broker_reqs[0]
 
     def get_remote_all(self, key, default=None):
         """Return a list of all values presented by remote units for key"""
-        # TODO: might be a nicer way todo this - written a while back!
         values = []
-        for conversation in self.conversations():
-            for relation_id in conversation.relation_ids:
-                for unit in hookenv.related_units(relation_id):
-                    value = hookenv.relation_get(key,
-                                                 unit,
-                                                 relation_id) or default
-                    if value:
-                        values.append(value)
+        for relation in self.relations:
+            for unit in relation.units:
+                value = unit.received.get(key, default)
+                if value:
+                    values.append(value)
         return list(set(values))
 
     def mon_hosts(self):
