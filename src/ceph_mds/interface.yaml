@@ -1,0 +1,3 @@
+name: ceph-mds
+summary: Ceph MDS Client Interface
+version: 1
