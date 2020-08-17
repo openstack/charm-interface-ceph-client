@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import sys
+from .lib import base_requires
 
-sys.path.append('src')
+
+class CephClientRequires(base_requires.CephRequires):
+
+    pass

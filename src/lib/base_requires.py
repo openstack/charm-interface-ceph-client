@@ -28,7 +28,7 @@ from charmhelpers.contrib.storage.linux.ceph import (
 )
 
 
-class CephClientRequires(RelationBase):
+class CephRequires(RelationBase):
     scope = scopes.GLOBAL
 
     auto_accessors = ['auth', 'key']

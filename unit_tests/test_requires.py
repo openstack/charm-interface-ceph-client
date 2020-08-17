@@ -17,14 +17,15 @@ from unittest import mock
 
 with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
     _meta.return_Value = 'ss'
-    import requires
+    from ceph_client import requires
 
 import charmhelpers
 
 
 _hook_args = {}
 
-TO_PATCH = [
+TO_PATCH = []
+TO_PATCH_BASE_REQUIRES = [
     'is_request_complete',
     'send_request_if_needed',
 ]
@@ -67,8 +68,9 @@ class TestCephClientRequires(unittest.TestCase):
             import importlib
             importlib.reload(requires)
 
-    def patch(self, method):
-        _m = mock.patch.object(self.obj, method)
+    def patch(self, method, obj=None):
+        target_obj = obj or self.obj
+        _m = mock.patch.object(target_obj, method)
         _mock = _m.start()
         self.addCleanup(_m.stop)
         return _mock
@@ -80,6 +82,8 @@ class TestCephClientRequires(unittest.TestCase):
         self.obj = requires
         for method in TO_PATCH:
             setattr(self, method, self.patch(method))
+        for method in TO_PATCH_BASE_REQUIRES:
+            setattr(self, method, self.patch(method, requires.base_requires))
 
     def tearDown(self):
         self.cr = None
@@ -274,8 +278,8 @@ class TestCephClientRequires(unittest.TestCase):
                         'class-read': ['rbd_children']},
                     'op': 'add-permissions-to-key'}])
 
-    @mock.patch.object(requires.hookenv, 'related_units')
-    @mock.patch.object(requires.hookenv, 'relation_get')
+    @mock.patch.object(requires.base_requires.hookenv, 'related_units')
+    @mock.patch.object(requires.base_requires.hookenv, 'relation_get')
     def test_get_remote_all(self, relation_get, related_units):
         unit_data = {
             'rid:1': {

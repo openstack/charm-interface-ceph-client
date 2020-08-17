@@ -9,7 +9,7 @@ from charms.reactive import scopes
 # from charms.reactive import not_unless
 
 
-class CephClientProvider(RelationBase):
+class CephProvides(RelationBase):
     scope = scopes.UNIT
 
     @hook('{provides:ceph-client}-relation-{joined,changed}')

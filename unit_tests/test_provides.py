@@ -17,11 +17,12 @@ from unittest import mock
 
 with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
     _meta.return_Value = 'ss'
-    import provides
+    from ceph_client import provides
 
 _hook_args = {}
 
-TO_PATCH = [
+TO_PATCH = []
+TO_PATCH_BASE_PROVIDES = [
     'relation_set',
 ]
 
@@ -63,8 +64,9 @@ class TestCephClientProvider(unittest.TestCase):
             import importlib
             importlib.reload(provides)
 
-    def patch(self, method):
-        _m = mock.patch.object(self.obj, method)
+    def patch(self, method, obj=None):
+        target_obj = obj or self.obj
+        _m = mock.patch.object(target_obj, method)
         _mock = _m.start()
         self.addCleanup(_m.stop)
         return _mock
@@ -76,6 +78,8 @@ class TestCephClientProvider(unittest.TestCase):
         self.obj = provides
         for method in TO_PATCH:
             setattr(self, method, self.patch(method))
+        for method in TO_PATCH_BASE_PROVIDES:
+            setattr(self, method, self.patch(method, provides.base_provides))
 
     def tearDown(self):
         self.cr = None
