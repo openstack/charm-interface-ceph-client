@@ -31,9 +31,11 @@ class CephRequires(reactive.Endpoint):
     def joined(self):
         reactive.set_flag(self.expand_name('{endpoint_name}.connected'))
 
+    @property
     def key(self):
         return self.all_joined_units.received.get('key')
 
+    @property
     def auth(self):
         return self.all_joined_units.received.get('auth')
 

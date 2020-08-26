@@ -44,6 +44,7 @@ class CephClient(base_requires.CephRequires):
     def broken(self):
         super().broken()
 
+    @property
     def fsid(self):
         return self.all_joined_units.received.get('fsid')
 
