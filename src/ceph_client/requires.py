@@ -39,8 +39,8 @@ class CephClientRequires(base_requires.CephRequires):
 
     def initial_ceph_response(self):
         data = {
-            'key': self.key(),
-            'auth': self.auth(),
+            'key': self.key,
+            'auth': self.auth,
             'mon_hosts': self.mon_hosts()
         }
         return data

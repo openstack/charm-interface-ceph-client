@@ -46,6 +46,9 @@ class CephClient(base_requires.CephRequires):
 
     @property
     def fsid(self):
+        return self._fsid()
+
+    def _fsid(self):
         return self.all_joined_units.received.get('fsid')
 
     def mds_key(self):
@@ -56,8 +59,8 @@ class CephClient(base_requires.CephRequires):
     def initial_ceph_response(self):
         data = {
             'mds_key': self.mds_key(),
-            'fsid': self.fsid(),
-            'auth': self.auth(),
+            'fsid': self.fsid,
+            'auth': self.auth,
             'mon_hosts': self.mon_hosts()
         }
         return data

@@ -33,10 +33,16 @@ class CephRequires(reactive.Endpoint):
 
     @property
     def key(self):
+        return self._key()
+
+    def _key(self):
         return self.all_joined_units.received.get('key')
 
     @property
     def auth(self):
+        return self._auth()
+
+    def _auth(self):
         return self.all_joined_units.received.get('auth')
 
     @property

@@ -149,22 +149,22 @@ class TestCephClientRequires(unittest.TestCase):
             self.assertEqual(hook_patterns[k], v['args'])
 
     def test_data_changed(self):
-        self.patch_kr('key', 'key1')
-        self.patch_kr('auth', 'auth1')
+        self.patch_kr('_key', 'key1')
+        self.patch_kr('_auth', 'auth1')
         self.patch_kr('mon_hosts', 'host1')
         self.cr.changed()
         self.set_flag.assert_called_once_with('some-relation.available')
 
     def test_data_changed_incomplete(self):
-        self.patch_kr('key', 'key1')
-        self.patch_kr('auth', None)
+        self.patch_kr('_key', 'key1')
+        self.patch_kr('_auth', None)
         self.patch_kr('mon_hosts', 'host1')
         self.cr.changed()
         self.assertFalse(self.set_flag.called)
 
     def test_data_changed_existing_broker_rq(self):
-        self.patch_kr('key', 'key1')
-        self.patch_kr('auth', 'auth1')
+        self.patch_kr('_key', 'key1')
+        self.patch_kr('_auth', 'auth1')
         self.patch_kr('mon_hosts', 'host1')
         self.patch_kr('get_current_request', DummyRequest())
         self.is_request_complete.return_value = True
@@ -174,8 +174,8 @@ class TestCephClientRequires(unittest.TestCase):
             mock.call('some-relation.pools.available')])
 
     def test_date_changed_existing_broker_rq_incomplete(self):
-        self.patch_kr('key', 'key1')
-        self.patch_kr('auth', 'auth1')
+        self.patch_kr('_key', 'key1')
+        self.patch_kr('_auth', 'auth1')
         self.patch_kr('mon_hosts', 'host1')
         self.is_request_complete.return_value = False
         self.cr.changed()
