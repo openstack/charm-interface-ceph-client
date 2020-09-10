@@ -154,7 +154,7 @@ class CephRequires(reactive.Endpoint):
                                       max_bytes=max_bytes,
                                       max_objects=max_objects,
                                       allow_ec_overwrites=allow_ec_overwrites)
-        self.send_request_if_needed(rq, relation=self.relation_name)
+        self.send_request_if_needed(rq)
         reactive.clear_flag(
             self.expand_name('{endpoint_name}.pools.available'))
 
@@ -210,7 +210,7 @@ class CephRequires(reactive.Endpoint):
             clay_scalar_mds=clay_scalar_mds,
             lrc_crush_locality=lrc_crush_locality
         )
-        self.send_request_if_needed(rq, relation=self.relation_name)
+        self.send_request_if_needed(rq)
         reactive.clear_flag(
             self.expand_name('{endpoint_name}.pools.available'))
 

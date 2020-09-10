@@ -69,12 +69,20 @@ class CephClient(base_requires.CephRequires):
         for relation in self.relations:
             relation.to_publish_raw['mds-name'] = socket.gethostname()
 
-    def request_cephfs(self, name):
+    def request_cephfs(self, name, extra_pools=None):
+        """Request creation of Ceph FS
+
+        :param name: Name of mds to create
+        :type name: str
+        :param extra_pools: Additional pools to add to FS.
+        :type extra_pools: List[str]
+        """
         rq = self.get_current_request() or CephBrokerRq()
         rq.add_op({
             'op': 'create-cephfs',
             'mds_name': name,
             'data_pool': "{}_data".format(name),
+            'extra_pools': extra_pools,
             'metadata_pool': "{}_metadata".format(name)})
         self.send_request_if_needed(rq)
 
