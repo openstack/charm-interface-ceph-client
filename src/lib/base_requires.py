@@ -78,33 +78,47 @@ class CephRequires(reactive.Endpoint):
 
     def create_replicated_pool(self, name, replicas=3, weight=None,
                                pg_num=None, group=None, namespace=None,
-                               app_name=None):
+                               app_name=None, **kwargs):
         """
         Request pool setup
 
-        @param name: Name of pool to create
-        @param replicas: Number of replicas for supporting pools
-        @param weight: The percentage of data the pool makes up
-        @param pg_num: If not provided, this value will be calculated by the
+        :param name: Name of pool to create
+        :type name: str
+        :param replicas: Number of replicas for supporting pools
+        :type replicas: int
+        :param weight: The percentage of data the pool makes up
+        :type weight: Optional[float]
+        :param pg_num: If not provided, this value will be calculated by the
                        broker based on how many OSDs are in the cluster at the
                        time of creation. Note that, if provided, this value
                        will be capped at the current available maximum.
-        @param group: Group to add pool to.
-        @param namespace: A group can optionally have a namespace defined that
+        :type pg_num: Optional[int]
+        :param group: Group to add pool to.
+        :type group: Optional[str]
+        :param namespace: A group can optionally have a namespace defined that
                           will be used to further restrict pool access.
-        @param app_name: (Optional) Tag pool with application name.  Note that
+        :type namespace: Optional[str]
+        :param app_name: (Optional) Tag pool with application name.  Note that
                          there is certain protocols emerging upstream with
                          regard to meaningful application names to use.
                          Examples are ``rbd`` and ``rgw``.
+        :type app_name: Optional[str]
+        :param kwargs: Additional keyword arguments subject to validation.
+                       Refer to CephBrokerRq.add_op_create_replicated_pool
+                       method for documentation.
+        :type kwargs: Dict[str,any]
         """
         rq = self.get_current_request() or CephBrokerRq()
-        rq.add_op_create_replicated_pool(name=name,
-                                         replica_count=replicas,
-                                         pg_num=pg_num,
-                                         weight=weight,
-                                         group=group,
-                                         namespace=namespace,
-                                         app_name=app_name)
+        kwargs.update({
+            'name': name,
+            'replica_count': replicas,
+            'pg_num': pg_num,
+            'weight': weight,
+            'group': group,
+            'namespace': namespace,
+            'app_name': app_name,
+        })
+        rq.add_op_create_replicated_pool(**kwargs)
         self.send_request_if_needed(rq)
         reactive.clear_flag(
             self.expand_name('{endpoint_name}.pools.available'))
@@ -132,28 +146,44 @@ class CephRequires(reactive.Endpoint):
     def create_erasure_pool(self, name, erasure_profile=None,
                             weight=None, group=None, app_name=None,
                             max_bytes=None, max_objects=None,
-                            allow_ec_overwrites=False):
+                            allow_ec_overwrites=False,
+                            **kwargs):
         """
         Request erasure coded pool setup
 
-        @param name: Name of pool to create
-        @param erasure_profile: Name of erasure profile for pool
-        @param weight: The percentage of data the pool makes up
-        @param group: Group to add pool to.
-        @param app_name: Name of application using pool
-        @param max_bytes: Maximum bytes of quota to apply
-        @param max_objects: Maximum object quota to apply
-        @param allow_ec_overwrites: Allow EC pools to be overwritten
+        :param name: Name of pool to create
+        :type name: str
+        :param erasure_profile: Name of erasure profile for pool
+        :type erasure_profile: str
+        :param weight: The percentage of data the pool makes up
+        :type weight: Optional[float]
+        :param group: Group to add pool to.
+        :type group: Optional[str]
+        :param app_name: Name of application using pool
+        :type app_name: Optional[str]
+        :param max_bytes: Maximum bytes of quota to apply
+        :type max_bytes: Optional[int]
+        :param max_objects: Maximum object quota to apply
+        :type max_objects: Optional[int]
+        :param allow_ec_overwrites: Allow EC pools to be overwritten
+        :type allow_ec_overwrites: bool
+        :param kwargs: Additional keyword arguments subject to validation.
+                       Refer to CephBrokerRq.add_op_create_replicated_pool
+                       method for documentation.
+        :type kwargs: Dict[str,any]
         """
         rq = self.get_current_request() or CephBrokerRq()
-        rq.add_op_create_erasure_pool(name=name,
-                                      erasure_profile=erasure_profile,
-                                      weight=weight,
-                                      group=group,
-                                      app_name=app_name,
-                                      max_bytes=max_bytes,
-                                      max_objects=max_objects,
-                                      allow_ec_overwrites=allow_ec_overwrites)
+        kwargs.update({
+            'name': name,
+            'erasure_profile': erasure_profile,
+            'weight': weight,
+            'group': group,
+            'app_name': app_name,
+            'max_bytes': max_bytes,
+            'max_objects': max_objects,
+            'allow_ec_overwrites': allow_ec_overwrites,
+        })
+        rq.add_op_create_erasure_pool(**kwargs)
         self.send_request_if_needed(rq)
         reactive.clear_flag(
             self.expand_name('{endpoint_name}.pools.available'))

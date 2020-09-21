@@ -22,8 +22,6 @@ with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
     _meta.return_Value = 'ss'
     from ceph_client import requires
 
-import charmhelpers
-
 
 _hook_args = {}
 
@@ -189,55 +187,33 @@ class TestCephClientRequires(unittest.TestCase):
             mock.call('some-relation.connected'),
             mock.call('some-relation.pools.available')])
 
-    @mock.patch.object(charmhelpers.contrib.storage.linux.ceph.uuid, 'uuid1')
-    def test_create_pool_new_request(self, _uuid1):
-        self.patch_kr('get_current_request', None)
+    def test_create_replicated_pool(self):
+        self.patch_kr('get_current_request')
+        self.patch_object(requires.base_requires, 'CephBrokerRq')
         self.patch_kr('send_request_if_needed')
-        _uuid1.return_value = '9e34123e-fa0c-11e8-ad9c-fa163ed1cc55'
-        self.cr.create_pool('bob')
-        ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
-        self.assertEqual(
-            ceph_broker_rq.ops,
-            [{
-                'op': 'create-pool',
-                'name': 'bob',
-                'replicas': 3,
-                'group': None,
-                'group-namespace': None,
-                'pg_num': None,
-                'weight': None,
-                'app-name': None,
-                'max-bytes': None,
-                'max-objects': None}])
-
-    @mock.patch.object(charmhelpers.contrib.storage.linux.ceph.uuid, 'uuid1')
-    def test_create_pool_existing_request(self, _uuid1):
-        self.patch_kr('send_request_if_needed')
-        _uuid1.return_value = '9e34123e-fa0c-11e8-ad9c-fa163ed1cc55'
-        req = (
-            '{"api-version": 1, '
-            '"ops": [{"op": "create-pool", "name": "bob", "replicas": 3, '
-            '"pg_num": null, "weight": null, "group": null, '
-            '"group-namespace": null, "app-name": null, "max-bytes": null, '
-            '"max-objects": null}], '
-            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
-        existing_request = DummyRequest(req_json=req)
-        self.patch_kr('get_current_request', existing_request)
-        self.cr.create_pool('bob')
-        ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
-        self.assertEqual(
-            ceph_broker_rq.ops,
-            [{
-                'op': 'create-pool',
-                'name': 'bob',
-                'replicas': 3,
-                'group': None,
-                'group-namespace': None,
-                'pg_num': None,
-                'max-bytes': None,
-                'max-objects': None,
-                'app-name': None,
-                'weight': None}])
+        self.get_current_request.return_value = None
+        rq = mock.MagicMock()
+        self.CephBrokerRq.return_value = rq
+        self.cr.create_replicated_pool('bob')
+        rq.add_op_create_replicated_pool.assert_called_once_with(
+            name='bob',
+            replica_count=3,
+            pg_num=None,
+            weight=None,
+            group=None,
+            namespace=None,
+            app_name=None)
+        existing_request = mock.MagicMock()
+        self.get_current_request.return_value = existing_request
+        self.cr.create_replicated_pool('bob')
+        existing_request.add_op_create_replicated_pool.assert_called_once_with(
+            name='bob',
+            replica_count=3,
+            pg_num=None,
+            weight=None,
+            group=None,
+            namespace=None,
+            app_name=None)
 
     def test_request_access_to_group_new_request(self):
         self.patch_kr('send_request_if_needed')
