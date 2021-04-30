@@ -16,7 +16,11 @@ import json
 
 import charms.reactive as reactive
 
-from charmhelpers.core.hookenv import log
+from charmhelpers.core.hookenv import (
+    application_name,
+    local_unit,
+    log,
+)
 from charmhelpers.contrib.network.ip import format_ipv6_addr
 
 from charmhelpers.contrib.storage.linux.ceph import (
@@ -285,6 +289,9 @@ class CephRequires(reactive.Endpoint):
             for relation in self.relations:
                 relation.to_publish['broker_req'] = json.loads(
                     request.request)
+                relation.to_publish_raw[
+                    'application-name'] = application_name()
+                relation.to_publish_raw['unit-name'] = local_unit()
 
     def get_current_request(self):
         broker_reqs = []
