@@ -72,6 +72,16 @@ class CephRequires(reactive.Endpoint):
             else:
                 log("incomplete request. broker_req not found")
 
+    def manage_flags(self):
+        """
+        Set states corresponding to the data we have.
+        """
+        reactive.toggle_flag(
+            self.expand_name("{endpoint_name}.connected"), self.is_joined
+        )
+        if not self.is_joined:
+            self.broken()
+
     def broken(self):
         reactive.clear_flag(
             self.expand_name('{endpoint_name}.available'))
