@@ -183,6 +183,16 @@ class TestCephClientRequires(unittest.TestCase):
         # Side effect of asserting pools.available was not set.
         self.set_flag.assert_called_once_with("some-relation.available")
 
+    def test_manage_flags(self):
+        self.cr.manage_flags()
+        self.clear_flag.assert_has_calls(
+            [
+                mock.call("some-relation.available"),
+                mock.call("some-relation.connected"),
+                mock.call("some-relation.pools.available"),
+            ]
+        )
+
     def test_broken(self):
         self.cr.broken()
         self.clear_flag.assert_has_calls(
