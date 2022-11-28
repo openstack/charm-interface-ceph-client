@@ -31,27 +31,26 @@ from charmhelpers.contrib.storage.linux.ceph import (
 
 
 class CephRequires(reactive.Endpoint):
-
     def joined(self):
-        reactive.set_flag(self.expand_name('{endpoint_name}.connected'))
+        reactive.set_flag(self.expand_name("{endpoint_name}.connected"))
 
     @property
     def key(self):
         return self._key()
 
     def _key(self):
-        return self.all_joined_units.received.get('key')
+        return self.all_joined_units.received.get("key")
 
     @property
     def auth(self):
         return self._auth()
 
     def _auth(self):
-        return self.all_joined_units.received.get('auth')
+        return self.all_joined_units.received.get("auth")
 
     @property
     def relation_name(self):
-        return self.expand_name('{endpoint_name}')
+        return self.expand_name("{endpoint_name}")
 
     def initial_ceph_response(self):
         raise NotImplementedError
@@ -59,7 +58,7 @@ class CephRequires(reactive.Endpoint):
     def changed(self):
         data = self.initial_ceph_response()
         if all(data.values()):
-            reactive.set_flag(self.expand_name('{endpoint_name}.available'))
+            reactive.set_flag(self.expand_name("{endpoint_name}.available"))
 
         rq = self.get_current_request()
         if rq:
@@ -67,22 +66,26 @@ class CephRequires(reactive.Endpoint):
 
             if rq and is_request_complete(rq, relation=self.relation_name):
                 log("Setting ceph-client.pools.available")
-                reactive.set_flag(
-                    self.expand_name('{endpoint_name}.pools.available'))
+                reactive.set_flag(self.expand_name("{endpoint_name}.pools.available"))
             else:
                 log("incomplete request. broker_req not found")
 
     def broken(self):
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.available'))
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.connected'))
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.pools.available'))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.available"))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.connected"))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.pools.available"))
 
-    def create_replicated_pool(self, name, replicas=3, weight=None,
-                               pg_num=None, group=None, namespace=None,
-                               app_name=None, **kwargs):
+    def create_replicated_pool(
+        self,
+        name,
+        replicas=3,
+        weight=None,
+        pg_num=None,
+        group=None,
+        namespace=None,
+        app_name=None,
+        **kwargs
+    ):
         """
         Request pool setup
 
@@ -113,22 +116,24 @@ class CephRequires(reactive.Endpoint):
         :type kwargs: Dict[str,any]
         """
         rq = self.get_current_request() or CephBrokerRq()
-        kwargs.update({
-            'name': name,
-            'replica_count': replicas,
-            'pg_num': pg_num,
-            'weight': weight,
-            'group': group,
-            'namespace': namespace,
-            'app_name': app_name,
-        })
+        kwargs.update(
+            {
+                "name": name,
+                "replica_count": replicas,
+                "pg_num": pg_num,
+                "weight": weight,
+                "group": group,
+                "namespace": namespace,
+                "app_name": app_name,
+            }
+        )
         rq.add_op_create_replicated_pool(**kwargs)
         self.send_request_if_needed(rq)
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.pools.available'))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.pools.available"))
 
-    def create_pool(self, name, replicas=3, weight=None, pg_num=None,
-                    group=None, namespace=None):
+    def create_pool(
+        self, name, replicas=3, weight=None, pg_num=None, group=None, namespace=None
+    ):
         """
         Request pool setup -- deprecated. Please use create_replicated_pool
         or create_erasure_pool(which doesn't exist yet)
@@ -144,14 +149,20 @@ class CephRequires(reactive.Endpoint):
         @param namespace: A group can optionally have a namespace defined that
                           will be used to further restrict pool access.
         """
-        self.create_replicated_pool(name, replicas, weight, pg_num, group,
-                                    namespace)
+        self.create_replicated_pool(name, replicas, weight, pg_num, group, namespace)
 
-    def create_erasure_pool(self, name, erasure_profile=None,
-                            weight=None, group=None, app_name=None,
-                            max_bytes=None, max_objects=None,
-                            allow_ec_overwrites=False,
-                            **kwargs):
+    def create_erasure_pool(
+        self,
+        name,
+        erasure_profile=None,
+        weight=None,
+        group=None,
+        app_name=None,
+        max_bytes=None,
+        max_objects=None,
+        allow_ec_overwrites=False,
+        **kwargs
+    ):
         """
         Request erasure coded pool setup
 
@@ -177,32 +188,37 @@ class CephRequires(reactive.Endpoint):
         :type kwargs: Dict[str,any]
         """
         rq = self.get_current_request() or CephBrokerRq()
-        kwargs.update({
-            'name': name,
-            'erasure_profile': erasure_profile,
-            'weight': weight,
-            'group': group,
-            'app_name': app_name,
-            'max_bytes': max_bytes,
-            'max_objects': max_objects,
-            'allow_ec_overwrites': allow_ec_overwrites,
-        })
+        kwargs.update(
+            {
+                "name": name,
+                "erasure_profile": erasure_profile,
+                "weight": weight,
+                "group": group,
+                "app_name": app_name,
+                "max_bytes": max_bytes,
+                "max_objects": max_objects,
+                "allow_ec_overwrites": allow_ec_overwrites,
+            }
+        )
         rq.add_op_create_erasure_pool(**kwargs)
         self.send_request_if_needed(rq)
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.pools.available'))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.pools.available"))
 
-    def create_erasure_profile(self, name,
-                               erasure_type='jerasure',
-                               erasure_technique=None,
-                               k=None, m=None,
-                               failure_domain=None,
-                               lrc_locality=None,
-                               shec_durability_estimator=None,
-                               clay_helper_chunks=None,
-                               device_class=None,
-                               clay_scalar_mds=None,
-                               lrc_crush_locality=None):
+    def create_erasure_profile(
+        self,
+        name,
+        erasure_type="jerasure",
+        erasure_technique=None,
+        k=None,
+        m=None,
+        failure_domain=None,
+        lrc_locality=None,
+        shec_durability_estimator=None,
+        clay_helper_chunks=None,
+        device_class=None,
+        clay_scalar_mds=None,
+        lrc_crush_locality=None,
+    ):
         """
         Create erasure coding profile
 
@@ -235,22 +251,27 @@ class CephRequires(reactive.Endpoint):
             name=name,
             erasure_type=erasure_type,
             erasure_technique=erasure_technique,
-            k=k, m=m,
+            k=k,
+            m=m,
             failure_domain=failure_domain,
             lrc_locality=lrc_locality,
             shec_durability_estimator=shec_durability_estimator,
             clay_helper_chunks=clay_helper_chunks,
             device_class=device_class,
             clay_scalar_mds=clay_scalar_mds,
-            lrc_crush_locality=lrc_crush_locality
+            lrc_crush_locality=lrc_crush_locality,
         )
         self.send_request_if_needed(rq)
-        reactive.clear_flag(
-            self.expand_name('{endpoint_name}.pools.available'))
+        reactive.clear_flag(self.expand_name("{endpoint_name}.pools.available"))
 
-    def request_access_to_group(self, name, namespace=None, permission=None,
-                                key_name=None,
-                                object_prefix_permissions=None):
+    def request_access_to_group(
+        self,
+        name,
+        namespace=None,
+        permission=None,
+        key_name=None,
+        object_prefix_permissions=None,
+    ):
         """
         Adds the requested permissions to service's Ceph key
 
@@ -274,7 +295,8 @@ class CephRequires(reactive.Endpoint):
             namespace=namespace,
             permission=permission,
             key_name=key_name,
-            object_prefix_permissions=object_prefix_permissions)
+            object_prefix_permissions=object_prefix_permissions,
+        )
         self.send_request_if_needed(current_request)
 
     def send_request_if_needed(self, request):
@@ -283,23 +305,20 @@ class CephRequires(reactive.Endpoint):
         @param request: A CephBrokerRq object
         """
         if is_request_sent(request, relation=self.relation_name):
-            log('Request already sent but not complete, '
-                'not sending new request')
+            log("Request already sent but not complete, " "not sending new request")
         else:
             for relation in self.relations:
-                relation.to_publish['broker_req'] = json.loads(
-                    request.request)
-                relation.to_publish_raw[
-                    'application-name'] = application_name()
-                relation.to_publish_raw['unit-name'] = local_unit()
+                relation.to_publish["broker_req"] = json.loads(request.request)
+                relation.to_publish_raw["application-name"] = application_name()
+                relation.to_publish_raw["unit-name"] = local_unit()
 
     def get_current_request(self):
         broker_reqs = []
         for relation in self.relations:
-            broker_req = relation.to_publish.get('broker_req', {})
+            broker_req = relation.to_publish.get("broker_req", {})
             if broker_req:
                 rq = CephBrokerRq()
-                rq.set_ops(broker_req['ops'])
+                rq.set_ops(broker_req["ops"])
                 broker_reqs.append(rq)
         # Check that if there are multiple requests then they are the same.
         assert all(x == broker_reqs[0] for x in broker_reqs)
@@ -319,13 +338,13 @@ class CephRequires(reactive.Endpoint):
     def mon_hosts(self):
         """List of all monitor host public addresses"""
         hosts = []
-        addrs = self.get_remote_all('ceph-public-address')
+        addrs = self.get_remote_all("ceph-public-address")
         for ceph_addrs in addrs:
             # NOTE(jamespage): This looks odd but deals with
             #                  use with ceph-proxy which
             #                  presents all monitors in
             #                  a single space delimited field.
-            for addr in ceph_addrs.split(' '):
+            for addr in ceph_addrs.split(" "):
                 hosts.append(format_ipv6_addr(addr) or addr)
         hosts.sort()
         return hosts

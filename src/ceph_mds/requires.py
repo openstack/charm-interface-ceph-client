@@ -26,21 +26,21 @@ from charmhelpers.contrib.storage.linux.ceph import (
 
 class CephClient(base_requires.CephRequires):
 
-    ceph_pool_app_name = 'cephfs'
+    ceph_pool_app_name = "cephfs"
 
-    @when('endpoint.{endpoint_name}.joined')
+    @when("endpoint.{endpoint_name}.joined")
     def joined(self):
         super().joined()
 
-    @when('endpoint.{endpoint_name}.changed')
+    @when("endpoint.{endpoint_name}.changed")
     def changed(self):
         super().changed()
 
-    @when('endpoint.{endpoint_name}.departed')
+    @when("endpoint.{endpoint_name}.departed")
     def departed(self):
         super().changed()
 
-    @when('endpoint.{endpoint_name}.broken')
+    @when("endpoint.{endpoint_name}.broken")
     def broken(self):
         super().broken()
 
@@ -49,25 +49,26 @@ class CephClient(base_requires.CephRequires):
         return self._fsid()
 
     def _fsid(self):
-        return self.all_joined_units.received.get('fsid')
+        return self.all_joined_units.received.get("fsid")
 
     def mds_key(self):
         """Retrieve the cephx key for the local mds unit"""
         return self.all_joined_units.received.get(
-            '{}_mds_key'.format(socket.gethostname()))
+            "{}_mds_key".format(socket.gethostname())
+        )
 
     def initial_ceph_response(self):
         data = {
-            'mds_key': self.mds_key(),
-            'fsid': self.fsid,
-            'auth': self.auth,
-            'mon_hosts': self.mon_hosts()
+            "mds_key": self.mds_key(),
+            "fsid": self.fsid,
+            "auth": self.auth,
+            "mon_hosts": self.mon_hosts(),
         }
         return data
 
     def announce_mds_name(self):
         for relation in self.relations:
-            relation.to_publish_raw['mds-name'] = socket.gethostname()
+            relation.to_publish_raw["mds-name"] = socket.gethostname()
 
     def request_cephfs(self, name, extra_pools=None):
         """Request creation of Ceph FS
@@ -78,12 +79,15 @@ class CephClient(base_requires.CephRequires):
         :type extra_pools: List[str]
         """
         rq = self.get_current_request() or CephBrokerRq()
-        rq.add_op({
-            'op': 'create-cephfs',
-            'mds_name': name,
-            'data_pool': "{}_data".format(name),
-            'extra_pools': extra_pools,
-            'metadata_pool': "{}_metadata".format(name)})
+        rq.add_op(
+            {
+                "op": "create-cephfs",
+                "mds_name": name,
+                "data_pool": "{}_data".format(name),
+                "extra_pools": extra_pools,
+                "metadata_pool": "{}_metadata".format(name),
+            }
+        )
         self.send_request_if_needed(rq)
 
     def initialize_mds(self, name, replicas=3):
@@ -97,10 +101,12 @@ class CephClient(base_requires.CephRequires):
             name="{}_data".format(name),
             replicas=replicas,
             weight=None,
-            app_name=self.ceph_pool_app_name)
+            app_name=self.ceph_pool_app_name,
+        )
         self.create_replicated_pool(
             name="{}_metadata".format(name),
             replicas=replicas,
             weight=None,
-            app_name=self.ceph_pool_app_name)
+            app_name=self.ceph_pool_app_name,
+        )
         self.request_cephfs(name)

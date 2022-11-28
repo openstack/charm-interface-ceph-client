@@ -1,4 +1,5 @@
 # Lint and unit test requirements
+black
 flake8
 stestr>=2.2.0
 charms.reactive

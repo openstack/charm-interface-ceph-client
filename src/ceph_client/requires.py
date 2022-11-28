@@ -20,27 +20,22 @@ from charms.reactive import (
 
 
 class CephClientRequires(base_requires.CephRequires):
-
-    @when('endpoint.{endpoint_name}.joined')
+    @when("endpoint.{endpoint_name}.joined")
     def joined(self):
         super().joined()
 
-    @when('endpoint.{endpoint_name}.changed')
+    @when("endpoint.{endpoint_name}.changed")
     def changed(self):
         super().changed()
 
-    @when('endpoint.{endpoint_name}.departed')
+    @when("endpoint.{endpoint_name}.departed")
     def departed(self):
         super().changed()
 
-    @when('endpoint.{endpoint_name}.broken')
+    @when("endpoint.{endpoint_name}.broken")
     def broken(self):
         super().broken()
 
     def initial_ceph_response(self):
-        data = {
-            'key': self.key,
-            'auth': self.auth,
-            'mon_hosts': self.mon_hosts()
-        }
+        data = {"key": self.key, "auth": self.auth, "mon_hosts": self.mon_hosts()}
         return data

@@ -18,8 +18,8 @@ from charmhelpers.contrib.storage.linux.ceph import (
     CephBrokerRq,
 )
 
-with mock.patch('charmhelpers.core.hookenv.metadata') as _meta:
-    _meta.return_Value = 'ss'
+with mock.patch("charmhelpers.core.hookenv.metadata") as _meta:
+    _meta.return_Value = "ss"
     from ceph_client import requires
 
 
@@ -27,33 +27,31 @@ _hook_args = {}
 
 TO_PATCH = []
 TO_PATCH_BASE_REQUIRES = [
-    'is_request_complete',
+    "is_request_complete",
 ]
 
 
 def mock_hook(*args, **kwargs):
-
     def inner(f):
         # remember what we were passed.  Note that we can't actually determine
         # the class we're attached to, as the decorator only gets the function.
         _hook_args[f.__name__] = dict(args=args, kwargs=kwargs)
         return f
+
     return inner
 
 
 class DummyRequest(CephBrokerRq):
-
     def __init__(self, req_json=None, request_id=12):
         super().__init__(request_id=request_id)
         if req_json:
-            self.set_ops(json.loads(req_json)['ops'])
+            self.set_ops(json.loads(req_json)["ops"])
 
 
 class TestCephClientRequires(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
-        cls._patched_hook = mock.patch('charms.reactive.when', mock_hook)
+        cls._patched_hook = mock.patch("charms.reactive.when", mock_hook)
         cls._patched_hook_started = cls._patched_hook.start()
         # force requires to rerun the mock_hook decorator:
         # try except is Python2/Python3 compatibility as Python3 has moved
@@ -62,6 +60,7 @@ class TestCephClientRequires(unittest.TestCase):
             reload(requires)
         except NameError:
             import importlib
+
             importlib.reload(requires)
 
     @classmethod
@@ -74,6 +73,7 @@ class TestCephClientRequires(unittest.TestCase):
             reload(requires)
         except NameError:
             import importlib
+
             importlib.reload(requires)
 
     def patch(self, method, obj=None):
@@ -84,7 +84,7 @@ class TestCephClientRequires(unittest.TestCase):
         return _mock
 
     def setUp(self):
-        self.cr = requires.CephClientRequires('some-relation', [])
+        self.cr = requires.CephClientRequires("some-relation", [])
         self._patches = {}
         self._patches_start = {}
         self.obj = requires
@@ -92,8 +92,8 @@ class TestCephClientRequires(unittest.TestCase):
             setattr(self, method, self.patch(method))
         for method in TO_PATCH_BASE_REQUIRES:
             setattr(self, method, self.patch(method, requires.base_requires))
-        self.patch_object(requires.base_requires.reactive, 'set_flag')
-        self.patch_object(requires.base_requires.reactive, 'clear_flag')
+        self.patch_object(requires.base_requires.reactive, "set_flag")
+        self.patch_object(requires.base_requires.reactive, "clear_flag")
 
     def tearDown(self):
         self.cr = None
@@ -137,157 +137,170 @@ class TestCephClientRequires(unittest.TestCase):
         # handle regressions.
         # The keys are the function names that the hook attaches to.
         hook_patterns = {
-            'data_changed': ('endpoint.{endpoint_name}.changed', ),
-            'joined': ('endpoint.{endpoint_name}.joined', ),
-            'broken': ('endpoint.{endpoint_name}.broken', ),
-            'changed': ('endpoint.{endpoint_name}.changed', ),
-            'departed': ('endpoint.{endpoint_name}.departed', ),
+            "data_changed": ("endpoint.{endpoint_name}.changed",),
+            "joined": ("endpoint.{endpoint_name}.joined",),
+            "broken": ("endpoint.{endpoint_name}.broken",),
+            "changed": ("endpoint.{endpoint_name}.changed",),
+            "departed": ("endpoint.{endpoint_name}.departed",),
         }
         for k, v in _hook_args.items():
-            self.assertEqual(hook_patterns[k], v['args'])
+            self.assertEqual(hook_patterns[k], v["args"])
 
     def test_data_changed(self):
-        self.patch_kr('_key', 'key1')
-        self.patch_kr('_auth', 'auth1')
-        self.patch_kr('mon_hosts', 'host1')
+        self.patch_kr("_key", "key1")
+        self.patch_kr("_auth", "auth1")
+        self.patch_kr("mon_hosts", "host1")
         self.cr.changed()
-        self.set_flag.assert_called_once_with('some-relation.available')
+        self.set_flag.assert_called_once_with("some-relation.available")
 
     def test_data_changed_incomplete(self):
-        self.patch_kr('_key', 'key1')
-        self.patch_kr('_auth', None)
-        self.patch_kr('mon_hosts', 'host1')
+        self.patch_kr("_key", "key1")
+        self.patch_kr("_auth", None)
+        self.patch_kr("mon_hosts", "host1")
         self.cr.changed()
         self.assertFalse(self.set_flag.called)
 
     def test_data_changed_existing_broker_rq(self):
-        self.patch_kr('_key', 'key1')
-        self.patch_kr('_auth', 'auth1')
-        self.patch_kr('mon_hosts', 'host1')
-        self.patch_kr('get_current_request', DummyRequest())
+        self.patch_kr("_key", "key1")
+        self.patch_kr("_auth", "auth1")
+        self.patch_kr("mon_hosts", "host1")
+        self.patch_kr("get_current_request", DummyRequest())
         self.is_request_complete.return_value = True
         self.cr.changed()
-        self.set_flag.assert_has_calls([
-            mock.call('some-relation.available'),
-            mock.call('some-relation.pools.available')])
+        self.set_flag.assert_has_calls(
+            [
+                mock.call("some-relation.available"),
+                mock.call("some-relation.pools.available"),
+            ]
+        )
 
     def test_date_changed_existing_broker_rq_incomplete(self):
-        self.patch_kr('_key', 'key1')
-        self.patch_kr('_auth', 'auth1')
-        self.patch_kr('mon_hosts', 'host1')
+        self.patch_kr("_key", "key1")
+        self.patch_kr("_auth", "auth1")
+        self.patch_kr("mon_hosts", "host1")
         self.is_request_complete.return_value = False
         self.cr.changed()
         # Side effect of asserting pools.available was not set.
-        self.set_flag.assert_called_once_with('some-relation.available')
+        self.set_flag.assert_called_once_with("some-relation.available")
 
     def test_broken(self):
         self.cr.broken()
-        self.clear_flag.assert_has_calls([
-            mock.call('some-relation.available'),
-            mock.call('some-relation.connected'),
-            mock.call('some-relation.pools.available')])
+        self.clear_flag.assert_has_calls(
+            [
+                mock.call("some-relation.available"),
+                mock.call("some-relation.connected"),
+                mock.call("some-relation.pools.available"),
+            ]
+        )
 
     def test_create_replicated_pool(self):
-        self.patch_kr('get_current_request')
-        self.patch_object(requires.base_requires, 'CephBrokerRq')
-        self.patch_kr('send_request_if_needed')
+        self.patch_kr("get_current_request")
+        self.patch_object(requires.base_requires, "CephBrokerRq")
+        self.patch_kr("send_request_if_needed")
         self.get_current_request.return_value = None
         rq = mock.MagicMock()
         self.CephBrokerRq.return_value = rq
-        self.cr.create_replicated_pool('bob')
+        self.cr.create_replicated_pool("bob")
         rq.add_op_create_replicated_pool.assert_called_once_with(
-            name='bob',
+            name="bob",
             replica_count=3,
             pg_num=None,
             weight=None,
             group=None,
             namespace=None,
-            app_name=None)
+            app_name=None,
+        )
         existing_request = mock.MagicMock()
         self.get_current_request.return_value = existing_request
-        self.cr.create_replicated_pool('bob')
+        self.cr.create_replicated_pool("bob")
         existing_request.add_op_create_replicated_pool.assert_called_once_with(
-            name='bob',
+            name="bob",
             replica_count=3,
             pg_num=None,
             weight=None,
             group=None,
             namespace=None,
-            app_name=None)
+            app_name=None,
+        )
 
     def test_request_access_to_group_new_request(self):
-        self.patch_kr('send_request_if_needed')
+        self.patch_kr("send_request_if_needed")
         self.cr.request_access_to_group(
-            'volumes',
-            key_name='cinder',
-            object_prefix_permissions={'class-read': ['rbd_children']},
-            permission='rwx')
+            "volumes",
+            key_name="cinder",
+            object_prefix_permissions={"class-read": ["rbd_children"]},
+            permission="rwx",
+        )
         ceph_broker_rq = self.send_request_if_needed.mock_calls[0][1][0]
         self.assertEqual(
             ceph_broker_rq.ops,
-            [{
-                'group': 'volumes',
-                'group-permission': 'rwx',
-                'name': 'cinder',
-                'namespace': None,
-                'object-prefix-permissions': {'class-read': ['rbd_children']},
-                'op': 'add-permissions-to-key'}])
+            [
+                {
+                    "group": "volumes",
+                    "group-permission": "rwx",
+                    "name": "cinder",
+                    "namespace": None,
+                    "object-prefix-permissions": {"class-read": ["rbd_children"]},
+                    "op": "add-permissions-to-key",
+                }
+            ],
+        )
 
     def test_request_access_to_group_existing_request(self):
-        self.patch_kr('send_request_if_needed')
+        self.patch_kr("send_request_if_needed")
         req = (
             '{"api-version": 1, '
             '"ops": [{"op": "create-pool", "name": "volumes", "replicas": 3, '
             '"pg_num": null, "weight": null, "group": null, '
             '"group-namespace": null}], '
-            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}')
+            '"request-id": "9e34123e-fa0c-11e8-ad9c-fa163ed1cc55"}'
+        )
         existing_request = DummyRequest(req_json=req)
-        self.patch_kr('get_current_request', existing_request)
+        self.patch_kr("get_current_request", existing_request)
         self.cr.request_access_to_group(
-            'volumes',
-            key_name='cinder',
-            object_prefix_permissions={'class-read': ['rbd_children']},
-            permission='rwx')
+            "volumes",
+            key_name="cinder",
+            object_prefix_permissions={"class-read": ["rbd_children"]},
+            permission="rwx",
+        )
         self.assertEqual(
             existing_request.ops,
             [
                 {
-                    'op': 'create-pool',
-                    'name': 'volumes',
-                    'replicas': 3,
-                    'group': None,
-                    'group-namespace': None,
-                    'pg_num': None,
-                    'weight': None},
+                    "op": "create-pool",
+                    "name": "volumes",
+                    "replicas": 3,
+                    "group": None,
+                    "group-namespace": None,
+                    "pg_num": None,
+                    "weight": None,
+                },
                 {
-                    'group': 'volumes',
-                    'group-permission': 'rwx',
-                    'name': 'cinder',
-                    'namespace': None,
-                    'object-prefix-permissions': {
-                        'class-read': ['rbd_children']},
-                    'op': 'add-permissions-to-key'}])
+                    "group": "volumes",
+                    "group-permission": "rwx",
+                    "name": "cinder",
+                    "namespace": None,
+                    "object-prefix-permissions": {"class-read": ["rbd_children"]},
+                    "op": "add-permissions-to-key",
+                },
+            ],
+        )
 
     def test_get_remote_all(self):
         unit_data = {
-            'rid:1': {
-                'app1/0': {
-                    'key1': 'value1',
-                    'key2': 'value2'},
-                'app1/1': {
-                    'key1': 'value1',
-                    'key2': 'value3'}},
-            'rid:2': {
-                'app2/0': {
-                    'key1': 'value1',
-                    'key2': 'value3'}},
-            'rid:3': {}}
+            "rid:1": {
+                "app1/0": {"key1": "value1", "key2": "value2"},
+                "app1/1": {"key1": "value1", "key2": "value3"},
+            },
+            "rid:2": {"app2/0": {"key1": "value1", "key2": "value3"}},
+            "rid:3": {},
+        }
         unit0_r1_mock = mock.MagicMock()
-        unit0_r1_mock.received = unit_data['rid:1']['app1/0']
+        unit0_r1_mock.received = unit_data["rid:1"]["app1/0"]
         unit1_r1_mock = mock.MagicMock()
-        unit1_r1_mock.received = unit_data['rid:1']['app1/1']
+        unit1_r1_mock.received = unit_data["rid:1"]["app1/1"]
         unit0_r2_mock = mock.MagicMock()
-        unit0_r2_mock.received = unit_data['rid:2']['app2/0']
+        unit0_r2_mock.received = unit_data["rid:2"]["app2/0"]
         rel1 = mock.MagicMock()
         rel1.units = [unit0_r1_mock, unit1_r1_mock]
         rel2 = mock.MagicMock()
@@ -295,27 +308,19 @@ class TestCephClientRequires(unittest.TestCase):
         rel3 = mock.MagicMock()
         rel3.units = []
 
-        self.patch_kr('_relations')
+        self.patch_kr("_relations")
         self._relations.__iter__.return_value = [rel1, rel2, rel3]
         # Check de-duplication:
-        self.assertEqual(
-            self.cr.get_remote_all('key1'),
-            ['value1'])
+        self.assertEqual(self.cr.get_remote_all("key1"), ["value1"])
         # Check multiple values:
-        self.assertEqual(
-            self.cr.get_remote_all('key2'),
-            ['value2', 'value3'])
+        self.assertEqual(self.cr.get_remote_all("key2"), ["value2", "value3"])
         # Check missing key
-        self.assertEqual(
-            self.cr.get_remote_all('key100'),
-            [])
+        self.assertEqual(self.cr.get_remote_all("key100"), [])
         # Check missing key with default
         self.assertEqual(
-            self.cr.get_remote_all('key100', default='defaultvalue'),
-            ['defaultvalue'])
+            self.cr.get_remote_all("key100", default="defaultvalue"), ["defaultvalue"]
+        )
 
     def test_mon_hosts(self):
-        self.patch_kr('get_remote_all', ['10.0.0.10 10.0.0.12', '10.0.0.23'])
-        self.assertEqual(
-            self.cr.mon_hosts(),
-            ['10.0.0.10', '10.0.0.12', '10.0.0.23'])
+        self.patch_kr("get_remote_all", ["10.0.0.10 10.0.0.12", "10.0.0.23"])
+        self.assertEqual(self.cr.mon_hosts(), ["10.0.0.10", "10.0.0.12", "10.0.0.23"])

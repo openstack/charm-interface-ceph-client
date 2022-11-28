@@ -5,6 +5,7 @@ from charmhelpers.core.hookenv import (
 from charms.reactive import RelationBase
 from charms.reactive import hook
 from charms.reactive import scopes
+
 # from charms.reactive import is_state
 # from charms.reactive import not_unless
 
@@ -12,13 +13,13 @@ from charms.reactive import scopes
 class CephProvides(RelationBase):
     scope = scopes.UNIT
 
-    @hook('{provides:ceph-client}-relation-{joined,changed}')
+    @hook("{provides:ceph-client}-relation-{joined,changed}")
     def changed(self):
-        self.set_state('{relation_name}.connected')
+        self.set_state("{relation_name}.connected")
         # service = hookenv.remote_service_name()
         conversation = self.conversation()
-        if conversation.get_remote('broker_req'):
-            self.set_state('{relation_name}.broker_requested')
+        if conversation.get_remote("broker_req"):
+            self.set_state("{relation_name}.broker_requested")
 
     def provide_auth(self, service, key, auth_supported, public_address):
         """
@@ -32,12 +33,10 @@ class CephProvides(RelationBase):
         # print("Conversation is ", conversation)
         # key is a keyword argument to the set_remote function so we have to
         # set it separately.
-        relation_set(
-            relation_id=conversation.namespace,
-            relation_settings={'key': key})
+        relation_set(relation_id=conversation.namespace, relation_settings={"key": key})
         opts = {
-            'auth': auth_supported,
-            'ceph-public-address': public_address,
+            "auth": auth_supported,
+            "ceph-public-address": public_address,
         }
         conversation.set_remote(**opts)
 
@@ -59,7 +58,7 @@ class CephProvides(RelationBase):
         """
         Return the key provided to the requesting service.
         """
-        return self.conversation(scope=service).get_remote('key')
+        return self.conversation(scope=service).get_remote("key")
 
     def provide_broker_token(self, service, unit_response_key, token):
         """
@@ -72,10 +71,12 @@ class CephProvides(RelationBase):
 
         # broker_rsp is being left for backward compatibility,
         # unit_response_key superscedes it
-        conversation.set_remote(**{
-            'broker_rsp': token,
-            unit_response_key: token,
-        })
+        conversation.set_remote(
+            **{
+                "broker_rsp": token,
+                unit_response_key: token,
+            }
+        )
 
     def requested_tokens(self):
         """
@@ -94,4 +95,4 @@ class CephProvides(RelationBase):
         """
         Return the token provided to the requesting service.
         """
-        return self.conversation(scope=service).get_remote('broker_req')
+        return self.conversation(scope=service).get_remote("broker_req")
